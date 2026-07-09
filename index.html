@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>78 ключей — учебный курс Таро</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <button id="menuToggle" class="icon-btn" aria-label="Меню">☰</button>
+  <div class="brand">🔮 78 ключей</div>
+  <div class="progress-pill" id="progressPill">…</div>
+</header>
+
+<div class="layout">
+  <nav id="sidebar" class="sidebar">
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-view="lessons">📖 Уроки</button>
+      <button class="nav-tab" data-view="cards">🃏 Карточки</button>
+      <button class="nav-tab" data-view="daily">✨ Карта дня</button>
+      <button class="nav-tab" data-view="search">🔍 Поиск</button>
+    </div>
+
+    <div id="lessonList" class="lesson-list"></div>
+  </nav>
+
+  <div id="overlay" class="overlay"></div>
+
+  <main id="content" class="content">
+    <div class="loading" id="loadingMsg">Загружаю материалы курса…</div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="app-data.js"></script>
+<script src="app-core.js"></script>
+<script src="app-chrome.js"></script>
+<script src="app-lessons.js"></script>
+<script src="app-cards.js"></script>
+<script src="app-daily-search.js"></script>
+<script src="app-main.js"></script>
+</body>
+</html>
