@@ -3,8 +3,8 @@
   function render() {
     updateProgressPill();
     if (state.view === "lessons") renderLessonsView();
-    else if (state.view === "cards") renderCardsView();
-    else if (state.view === "daily") renderDailyView(false);
+    else if (state.view === "library") renderLibraryView();
+    else if (state.view === "practice") renderPracticeView();
     else if (state.view === "search") renderSearchView();
     if (state.view !== "lessons") renderSidebarLessons();
   }

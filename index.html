@@ -18,8 +18,8 @@
   <nav id="sidebar" class="sidebar">
     <div class="nav-tabs">
       <button class="nav-tab active" data-view="lessons">📖 Уроки</button>
-      <button class="nav-tab" data-view="cards">🃏 Карточки</button>
-      <button class="nav-tab" data-view="daily">✨ Карта дня</button>
+      <button class="nav-tab" data-view="library">🃏 Карты</button>
+      <button class="nav-tab" data-view="practice">🧭 Практика</button>
       <button class="nav-tab" data-view="search">🔍 Поиск</button>
     </div>
 
@@ -33,13 +33,22 @@
   </main>
 </div>
 
+<nav class="bottom-nav" id="bottomNav">
+  <button class="nav-tab active" data-view="lessons"><span class="bn-icon">📖</span><span class="bn-label">Уроки</span></button>
+  <button class="nav-tab" data-view="library"><span class="bn-icon">🃏</span><span class="bn-label">Карты</span></button>
+  <button class="nav-tab" data-view="practice"><span class="bn-icon">🧭</span><span class="bn-label">Практика</span></button>
+  <button class="nav-tab" data-view="search"><span class="bn-icon">🔍</span><span class="bn-label">Поиск</span></button>
+</nav>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="app-data.js"></script>
 <script src="app-core.js"></script>
+<script src="app-notes.js"></script>
 <script src="app-chrome.js"></script>
 <script src="app-lessons.js"></script>
-<script src="app-cards.js"></script>
-<script src="app-daily-search.js"></script>
+<script src="app-library.js"></script>
+<script src="app-practice.js"></script>
+<script src="app-search.js"></script>
 <script src="app-main.js"></script>
 </body>
 </html>

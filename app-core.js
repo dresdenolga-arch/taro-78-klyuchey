@@ -47,6 +47,15 @@
     return marked.parse(md);
   }
 
+  function extractPreview(mdSection, maxLen) {
+    if (!mdSection) return "";
+    const lines = mdSection.split("\n").filter((l) => !/^#{1,2}\s/.test(l.trim()));
+    const text = lines.join(" ").replace(/[#*_`>]/g, "").replace(/\s+/g, " ").trim();
+    const limit = maxLen || 220;
+    if (text.length <= limit) return text;
+    return text.slice(0, limit).replace(/\s+\S*$/, "") + "…";
+  }
+
   function slugify(text) {
     return text
       .toString().toLowerCase().trim()

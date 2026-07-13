@@ -97,15 +97,25 @@
     deckIndex: 0,
     answerShown: false,
     searchTerm: "",
+    searchTag: null,
     highlight: null,
+    practiceMode: "daily",
+    libraryFilter: "Все",
+    libraryQuery: "",
+    libraryCard: null,
+    _dailyAnswerShown: false,
   };
+
+  // Метаданные карт (выжимка/теги/квиз) — заполняются в Фазе 2 через data/meta/*.json.
+  // Пока пусто: интерфейс уже умеет их показывать, как только они появятся.
+  const CARD_META = {};
 
   const PROGRESS_KEY = "tarot78_progress_v1";
   function loadProgress() {
     try {
-      return JSON.parse(localStorage.getItem(PROGRESS_KEY)) || { lessonsRead: {}, cards: {} };
+      return JSON.parse(localStorage.getItem(PROGRESS_KEY)) || { lessonsRead: {}, cards: {}, quiz: {} };
     } catch (e) {
-      return { lessonsRead: {}, cards: {} };
+      return { lessonsRead: {}, cards: {}, quiz: {} };
     }
   }
   function saveProgress(p) {

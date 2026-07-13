@@ -17,9 +17,8 @@
 
   document.querySelectorAll(".nav-tab").forEach((btn) => {
     btn.addEventListener("click", () => {
-      document.querySelectorAll(".nav-tab").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
       state.view = btn.dataset.view;
+      activateTab(state.view);
       $sidebar.classList.remove("open");
       $overlay.classList.remove("show");
       render();
@@ -28,8 +27,12 @@
 
   function activateTab(name) {
     document.querySelectorAll(".nav-tab").forEach((b) => b.classList.remove("active"));
-    const btn = document.querySelector('.nav-tab[data-view="' + name + '"]');
-    if (btn) btn.classList.add("active");
+    document.querySelectorAll('.nav-tab[data-view="' + name + '"]').forEach((b) => b.classList.add("active"));
+  }
+
+  function goToLessonForCard(card) {
+    activateTab("lessons");
+    openLesson(card.lesson, card.name);
   }
 
   function updateProgressPill() {

@@ -10,14 +10,56 @@
   }
 
   function scrollToHeadingContaining(term) {
-    const heads = $content.querySelectorAll("h1, h2");
+    const heads = $content.querySelectorAll("summary, h1, h2");
     const t = norm(term);
     for (const h of heads) {
       if (norm(h.textContent).includes(t)) {
+        const details = h.closest("details");
+        if (details) details.open = true;
         h.scrollIntoView({ behavior: "smooth", block: "start" });
         return;
       }
     }
+  }
+
+  // Оборачивает каждую карточную секцию (h1, кроме титульного) в <details>,
+  // чтобы урок раскрывался слоями, а не одним длинным полотном.
+  function wrapSections(wrapEl) {
+    const out = document.createDocumentFragment();
+    let current = null;
+    let cardH1Count = 0;
+    Array.from(wrapEl.childNodes).forEach((node) => {
+      if (node.nodeType === 1 && node.tagName === "H1") {
+        if (cardH1Count === 0 && /^Конспект/i.test(node.textContent.trim())) {
+          current = null;
+          out.appendChild(node);
+          return;
+        }
+        cardH1Count++;
+        current = document.createElement("details");
+        current.className = "section-card";
+        if (cardH1Count === 1) current.open = true;
+        const summary = document.createElement("summary");
+        summary.id = node.id;
+        summary.textContent = node.textContent;
+        current.appendChild(summary);
+        out.appendChild(current);
+      } else if (current) {
+        current.appendChild(node);
+      } else {
+        out.appendChild(node);
+      }
+    });
+    out.querySelectorAll(".section-card").forEach((det) => {
+      const p = det.querySelector("p");
+      if (p) {
+        const preview = document.createElement("div");
+        preview.className = "section-preview";
+        preview.textContent = extractPreview(p.textContent, 160);
+        det.querySelector("summary").after(preview);
+      }
+    });
+    return out;
   }
 
   function renderLessonsView() {
@@ -36,6 +78,7 @@
       if (!/^Конспект/i.test(h.textContent.trim())) toc.push({ id, text: h.textContent });
     });
 
+    const sections = wrapSections(wrap);
     const done = !!progress.lessonsRead[lesson.id];
 
     $content.innerHTML =
@@ -50,9 +93,12 @@
           toc.map((t) => '<a data-id="' + t.id + '">' + t.text + '</a>').join("") +
         '</div>' +
       '</details>' +
-      '<div class="prose"></div>';
+      '<div class="prose"></div>' +
+      '<div class="lesson-note"></div>';
 
-    $content.querySelector(".prose").appendChild(wrap);
+    $content.querySelector(".prose").appendChild(sections);
+    $content.querySelector(".lesson-note").innerHTML = noteBoxHtml("lesson:" + lesson.id, "Заметки к уроку");
+    bindNoteBoxes($content);
 
     document.getElementById("toggleReadBtn").addEventListener("click", () => {
       progress.lessonsRead[lesson.id] = !progress.lessonsRead[lesson.id];
@@ -65,13 +111,21 @@
     $content.querySelectorAll(".lesson-toc-list a").forEach((a) => {
       a.addEventListener("click", () => {
         const el = document.getElementById(a.dataset.id);
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (el) {
+          const details = el.closest("details");
+          if (details) details.open = true;
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
       });
     });
 
     if (state.highlight) {
       const firstMark = $content.querySelector("mark");
-      if (firstMark) setTimeout(() => firstMark.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+      if (firstMark) {
+        const details = firstMark.closest("details");
+        if (details) details.open = true;
+        setTimeout(() => firstMark.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+      }
       state.highlight = null;
     }
 
