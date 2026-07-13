@@ -428,7 +428,7 @@
       '</div>' +
       '<div class="card-page">' +
         '<div class="cp-tag">Соляр · ' + house.name + '</div>' +
-        '<h1 class="cp-name">' + card.name + ' в ' + house.name.replace(/^Дом \d+\.\s*/, "") + '</h1>' +
+        '<h1 class="cp-name">' + card.name + ' — Дом ' + house.id + '</h1>' +
         '<div class="cp-quick">' +
           '<div class="cp-quick-label">Тема дома</div>' +
           '<p>' + escapeHtml(house.theme) + '</p>' +
