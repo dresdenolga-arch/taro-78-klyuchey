@@ -104,16 +104,21 @@
     libraryQuery: "",
     libraryCard: null,
     _dailyAnswerShown: false,
+    quizFilter: "Все",
+    quizQueue: [],
+    quizIndex: 0,
+    quizAnswerShown: false,
+    quizQuestion: null,
   };
 
-  // Метаданные карт (выжимка/теги/квиз) — заполняются в Фазе 2 через data/meta/*.json.
-  // Пока пусто: интерфейс уже умеет их показывать, как только они появятся.
+  // Метаданные карт (выжимка/теги/квиз) — заполняются через data/meta/*.json (см. loadCardMeta в app-core.js).
   const CARD_META = {};
 
   const PROGRESS_KEY = "tarot78_progress_v1";
   function loadProgress() {
     try {
-      return JSON.parse(localStorage.getItem(PROGRESS_KEY)) || { lessonsRead: {}, cards: {}, quiz: {} };
+      const p = JSON.parse(localStorage.getItem(PROGRESS_KEY)) || {};
+      return { lessonsRead: p.lessonsRead || {}, cards: p.cards || {}, quiz: p.quiz || {} };
     } catch (e) {
       return { lessonsRead: {}, cards: {}, quiz: {} };
     }

@@ -60,15 +60,38 @@
     const q = (term || "").trim();
     const re = q.length >= 2 ? new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") : null;
     const results = [];
-    LESSONS.forEach((l) => {
-      const text = state.lessonText.get(l.id) || "";
-      text.split("\n").forEach((line) => {
-        const t = line.trim();
-        if (!t || t.startsWith("#")) return;
-        if (re && !re.test(t)) return;
-        results.push({ lesson: l, snippet: t });
+
+    if (tagCardNames) {
+      // Тема выбрана — ищем только внутри разделов карт с этим тегом.
+      tagCardNames.forEach((name) => {
+        const card = CARDS.find((c) => c.name === name);
+        if (!card) return;
+        const lesson = LESSONS.find((l) => l.id === card.lesson);
+        const text = state.lessonText.get(card.lesson) || "";
+        const section = findCardSection(text, card);
+        if (section) {
+          section.split("\n").forEach((line) => {
+            const t = line.trim();
+            if (!t || t.startsWith("#")) return;
+            if (re && !re.test(t)) return;
+            results.push({ lesson, snippet: t, cardName: name });
+          });
+        } else if (CARD_META[name] && CARD_META[name].summary) {
+          const t = CARD_META[name].summary;
+          if (!re || re.test(t)) results.push({ lesson, snippet: t, cardName: name });
+        }
       });
-    });
+    } else {
+      LESSONS.forEach((l) => {
+        const text = state.lessonText.get(l.id) || "";
+        text.split("\n").forEach((line) => {
+          const t = line.trim();
+          if (!t || t.startsWith("#")) return;
+          if (re && !re.test(t)) return;
+          results.push({ lesson: l, snippet: t });
+        });
+      });
+    }
 
     if (!results.length) {
       box.innerHTML = '<p class="search-empty">Ничего не найдено.</p>';
@@ -78,7 +101,7 @@
     const shown = results.slice(0, 60);
     box.innerHTML = shown.map((r, i) =>
       '<div class="search-result" data-i="' + i + '">' +
-        '<div class="sr-title">' + r.lesson.title + '</div>' +
+        '<div class="sr-title">' + r.lesson.title + (r.cardName ? " · " + r.cardName : "") + '</div>' +
         '<div class="sr-snippet">' + (re ? escapeHtml(r.snippet).replace(re, (m) => "<mark>" + m + "</mark>") : escapeHtml(r.snippet)) + '</div>' +
       '</div>'
     ).join("") + (results.length > 60 ? '<p class="search-empty">Показаны первые 60 результатов из ' + results.length + '.</p>' : "");
@@ -86,9 +109,9 @@
     box.querySelectorAll(".search-result").forEach((el, i) => {
       el.addEventListener("click", () => {
         const r = shown[i];
-        state.highlight = q || null;
+        state.highlight = q || r.cardName || null;
         activateTab("lessons");
-        openLesson(r.lesson.id);
+        openLesson(r.lesson.id, r.cardName || null);
       });
     });
   }

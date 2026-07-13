@@ -13,7 +13,7 @@
 
   (async function init() {
     renderSidebarLessons();
-    await loadAllLessons();
+    await Promise.all([loadAllLessons(), loadCardMeta()]);
     const loadingMsg = document.getElementById("loadingMsg");
     if (loadingMsg) loadingMsg.remove();
     render();

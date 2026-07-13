@@ -199,6 +199,7 @@ body{
 .search-result .sr-title{ color: var(--accent); font-size:.82rem; font-family: system-ui, sans-serif; margin-bottom:5px;}
 .search-result .sr-snippet{ font-size:.92rem; color: var(--text-dim); line-height:1.5;}
 .search-empty{ color: var(--text-dim); font-family: system-ui, sans-serif; }
+.quiz-question{ font-size:1.15rem; line-height:1.5; margin-top:6px; color: var(--text); }
 
 /* Bottom mobile nav */
 .bottom-nav{

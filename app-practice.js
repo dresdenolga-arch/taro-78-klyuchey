@@ -225,14 +225,108 @@
     renderFlashSubview();
   }
 
-  // ----- Квиз (заглушка Фазы 1, наполнится в Фазе 2) -----
+  // ----- Квиз (вопросы на понимание, самопроверка) -----
+
+  function quizCardsInDeck(filter) {
+    const base = filter === "Все" ? CARDS.slice() : CARDS.filter((c) => c.group === filter);
+    return base.filter((c) => CARD_META[c.name] && CARD_META[c.name].quiz && CARD_META[c.name].quiz.length);
+  }
+
+  function startQuizDeck(filter) {
+    state.quizFilter = filter;
+    state.quizQueue = shuffle(quizCardsInDeck(filter));
+    state.quizIndex = 0;
+    state.quizAnswerShown = false;
+    state.quizQuestion = null;
+  }
+
+  function bindQuizChips() {
+    $content.querySelectorAll(".quiz-chip").forEach((c) => {
+      c.addEventListener("click", () => {
+        startQuizDeck(c.dataset.g);
+        renderQuizSubview();
+      });
+    });
+  }
 
   function renderQuizSubview() {
+    if (!state.quizQueue.length) startQuizDeck(state.quizFilter);
+
+    const chips = ["Все"].concat(GROUPS).map(
+      (g) => '<button class="chip quiz-chip ' + (g === state.quizFilter ? "active" : "") + '" data-g="' + g + '">' + g + '</button>'
+    ).join("");
+
+    const total = state.quizQueue.length;
+    const card = state.quizQueue[state.quizIndex];
+
+    if (!card) {
+      $content.innerHTML =
+        renderPracticeSubnav() +
+        '<div class="deck-picker">' + chips + '</div>' +
+        '<div class="quiz-placeholder"><p>Для этой колоды пока нет вопросов — метаданные карт ещё загружаются или их нет для этой группы.</p></div>';
+      bindPracticeSubnav();
+      bindQuizChips();
+      return;
+    }
+
+    if (!state.quizQuestion) {
+      const qs = CARD_META[card.name].quiz;
+      state.quizQuestion = qs[Math.floor(Math.random() * qs.length)];
+    }
+
+    const rating = progress.quiz[card.name];
+    const ratingLabel = rating ? (" · отмечено: " + (rating === "know" ? "знаю" : "повторить")) : "";
+
     $content.innerHTML =
       renderPracticeSubnav() +
-      '<div class="quiz-placeholder">' +
-        '<p>Режим «Проверка знаний» появится следующим шагом: короткие вопросы по каждой карте с самопроверкой ответа.</p>' +
-        '<p>Пока можно тренировать карты через «Карточки» рядом или открыть учебную страницу карты в разделе «Карты».</p>' +
+      '<div class="deck-picker">' + chips + '</div>' +
+      '<div class="flash-wrap">' +
+        '<div class="flash-progress">Вопрос ' + (state.quizIndex + 1) + ' из ' + total + ' · колода «' + state.quizFilter + '»' + ratingLabel + '</div>' +
+        '<div class="flashcard" id="quizCard">' +
+          '<div class="flash-tag">' + card.group + ' · ' + card.name + '</div>' +
+          '<div class="quiz-question">' + escapeHtml(state.quizQuestion.q) + '</div>' +
+          (!state.quizAnswerShown
+            ? '<button class="btn primary" id="showQuizAnswerBtn" style="margin-top:14px;">Показать ответ</button>'
+            : '<div class="flash-answer prose" id="quizAnswer"><p>' + escapeHtml(state.quizQuestion.a) + '</p></div>') +
+        '</div>' +
+        (state.quizAnswerShown
+          ? '<div class="flash-actions"><button class="btn review" id="quizMarkReview">Повторить ещё раз</button><button class="btn know" id="quizMarkKnow">Знаю ✓</button></div>'
+          : "") +
+        '<div class="flash-footer">' +
+          '<button class="btn ghost small" id="quizSkipBtn">Пропустить →</button>' +
+          '<button class="btn ghost small" id="quizOpenInLibrary">Учебная страница карты</button>' +
+        '</div>' +
       '</div>';
+
     bindPracticeSubnav();
+    bindQuizChips();
+
+    if (!state.quizAnswerShown) {
+      document.getElementById("showQuizAnswerBtn").addEventListener("click", () => {
+        state.quizAnswerShown = true;
+        renderQuizSubview();
+      });
+    } else {
+      document.getElementById("quizMarkKnow").addEventListener("click", () => rateQuiz(card, "know"));
+      document.getElementById("quizMarkReview").addEventListener("click", () => rateQuiz(card, "review"));
+    }
+    document.getElementById("quizSkipBtn").addEventListener("click", nextQuizCard);
+    document.getElementById("quizOpenInLibrary").addEventListener("click", () => openCard(card.name));
+  }
+
+  function rateQuiz(card, rating) {
+    progress.quiz[card.name] = rating;
+    saveProgress(progress);
+    nextQuizCard();
+  }
+
+  function nextQuizCard() {
+    state.quizIndex++;
+    state.quizAnswerShown = false;
+    state.quizQuestion = null;
+    if (state.quizIndex >= state.quizQueue.length) {
+      state.quizQueue = shuffle(quizCardsInDeck(state.quizFilter));
+      state.quizIndex = 0;
+    }
+    renderQuizSubview();
   }

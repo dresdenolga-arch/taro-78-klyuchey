@@ -14,6 +14,24 @@
     );
   }
 
+  // ---------- 3b. Загрузка метаданных карт (Фаза 2) ----------
+
+  async function loadCardMeta() {
+    await Promise.all(
+      LESSONS.map(async (l) => {
+        const file = "data/meta/" + l.file.split("/").pop().replace(".md", ".json");
+        try {
+          const res = await fetch(file);
+          if (!res.ok) return;
+          const obj = await res.json();
+          Object.assign(CARD_META, obj);
+        } catch (e) {
+          // Метаданные необязательны — если файла нет, интерфейс просто не покажет теги/квиз для этих карт.
+        }
+      })
+    );
+  }
+
   // ---------- 4. Поиск карты в тексте урока ----------
 
   function findCardSection(mdText, card) {
