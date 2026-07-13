@@ -271,9 +271,19 @@ body{
 .cp-quick{ background: var(--panel); border:1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin: 14px 0; }
 .cp-quick-label{ font-family: system-ui, sans-serif; color: var(--accent); font-size:.8rem; margin-bottom:6px;}
 .tag-row{ display:flex; flex-wrap:wrap; gap:6px; margin: 10px 0; }
-.tag-chip{ font-family: system-ui, sans-serif; font-size:.74rem; color: var(--text-dim); background: var(--panel-2); padding:4px 10px; border-radius:999px;}
+.tag-chip{
+  font-family: system-ui, sans-serif; font-size:.74rem; color: var(--text-dim); background: var(--panel-2);
+  padding:4px 10px; border-radius:999px; border:1px solid transparent; cursor:pointer;
+}
+.tag-chip:hover{ border-color: var(--accent-soft); color: var(--accent); }
+.tag-chip:active{ background: var(--accent-soft); color:#fff; }
 .cp-actions{ display:flex; gap:10px; flex-wrap:wrap; margin: 16px 0; font-family: system-ui, sans-serif;}
 .cp-full{ margin-top: 18px; }
+.tag-jump-flash{ animation: tagJumpFlash 1.6s ease; }
+@keyframes tagJumpFlash{
+  0%{ background: var(--accent-soft); }
+  100%{ background: transparent; }
+}
 
 @media (max-width: 880px){
   .icon-btn{ display:inline-block; }

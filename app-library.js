@@ -2,6 +2,47 @@
 
   // ---------- 8. Вид: Карты (учебная библиотека) ----------
 
+  // Ключевые "стемы" тегов для поиска соответствующего раздела/абзаца внутри
+  // полного конспекта конкретной карты (заголовки и формулировки не всегда
+  // совпадают с тегом дословно, поэтому ищем по корню слова).
+  var TAG_STEMS = {
+    "тень": "тень",
+    "ресурс": "ресурс",
+    "отношения": "отношени",
+    "деньги": "деньг",
+    "тело": "тел",
+    "практикум": "практик"
+  };
+
+  function jumpToCardTag(tag) {
+    var details = document.getElementById("cpFullDetails");
+    var prose = document.getElementById("cpFullProse");
+    if (!details || !prose) return;
+    details.open = true;
+    var stem = norm(TAG_STEMS[tag] || tag);
+
+    var target = null;
+    var heads = prose.querySelectorAll("h1, h2, h3, h4");
+    for (var i = 0; i < heads.length; i++) {
+      if (norm(heads[i].textContent).includes(stem)) { target = heads[i]; break; }
+    }
+    if (!target) {
+      var blocks = prose.querySelectorAll("p, li");
+      for (var j = 0; j < blocks.length; j++) {
+        if (norm(blocks[j].textContent).includes(stem)) { target = blocks[j]; break; }
+      }
+    }
+
+    setTimeout(function () {
+      var scrollEl = target || details;
+      scrollEl.scrollIntoView({ behavior: "smooth", block: target ? "center" : "start" });
+      if (target) {
+        target.classList.add("tag-jump-flash");
+        setTimeout(function () { target.classList.remove("tag-jump-flash"); }, 1600);
+      }
+    }, 60);
+  }
+
   function openCard(name) {
     state.libraryCard = name;
     state.view = "library";
@@ -65,14 +106,14 @@
           '<div class="cp-quick-label">Коротко</div>' +
           '<p>' + escapeHtml(summary || "Раздел по этой карте пока не найден в тексте урока.") + '</p>' +
         '</div>' +
-        (tags.length ? '<div class="tag-row">' + tags.map((t) => '<span class="tag-chip">' + t + '</span>').join("") + '</div>' : "") +
+        (tags.length ? '<div class="tag-row">' + tags.map((t) => '<button type="button" class="tag-chip" data-tag="' + t + '">' + t + '</button>').join("") + '</div>' : "") +
         '<div class="cp-actions">' +
           '<button class="btn small" id="openInLessonBtn">Открыть весь урок</button>' +
           '<button class="btn small primary" id="trainCardBtn">Тренировать эту карту</button>' +
         '</div>' +
-        '<details class="section-card cp-full">' +
+        '<details class="section-card cp-full" id="cpFullDetails">' +
           '<summary>Полный конспект</summary>' +
-          '<div class="prose">' + (section ? renderMarkdown(section) : "<p><em>Текст не найден — открой урок целиком.</em></p>") + '</div>' +
+          '<div class="prose" id="cpFullProse">' + (section ? renderMarkdown(section) : "<p><em>Текст не найден — открой урок целиком.</em></p>") + '</div>' +
         '</details>' +
         '<div class="cp-note"></div>' +
       '</div>';
@@ -84,6 +125,10 @@
       state.libraryCard = null;
       render();
     });
+    $content.querySelectorAll(".tag-chip").forEach((btn) => {
+      btn.addEventListener("click", () => jumpToCardTag(btn.dataset.tag));
+    });
+
     document.getElementById("openInLessonBtn").addEventListener("click", () => goToLessonForCard(card));
     document.getElementById("trainCardBtn").addEventListener("click", () => {
       state.practiceMode = "cards";
