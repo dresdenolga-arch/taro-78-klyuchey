@@ -6,6 +6,7 @@
     { id: "daily", label: "✨ Карта дня" },
     { id: "cards", label: "🃏 Карточки" },
     { id: "quiz", label: "🧠 Квиз" },
+    { id: "solar", label: "🔮 Соляр" },
   ];
 
   function renderPracticeSubnav() {
@@ -28,6 +29,7 @@
   function renderPracticeView() {
     if (state.practiceMode === "cards") renderFlashSubview();
     else if (state.practiceMode === "quiz") renderQuizSubview();
+    else if (state.practiceMode === "solar") renderSolarSubview();
     else renderDailySubview();
   }
 
@@ -329,4 +331,148 @@
       state.quizIndex = 0;
     }
     renderQuizSubview();
+  }
+
+  // ----- Соляр (тренажёр: карта в доме) -----
+
+  function houseById(id) {
+    return HOUSES.find((h) => h.id === id) || null;
+  }
+
+  function solarCardQuickSummary(card) {
+    const meta = CARD_META[card.name];
+    if (meta && meta.summary) return meta.summary;
+    const text = state.lessonText.get(card.lesson) || "";
+    const section = findCardSection(text, card);
+    return extractPreview(section, 320) || "Раздел по этой карте пока не найден в тексте урока.";
+  }
+
+  function renderSolarHousePicker() {
+    $content.innerHTML =
+      renderPracticeSubnav() +
+      '<div class="solar-intro prose"><p>Выбери дом Соляра — тему года, которую тренируешься трактовать. Затем возьми карту (наугад или свою) и разбери её в этом доме по методу автора.</p></div>' +
+      '<div class="library-grid solar-house-grid">' +
+        HOUSES.map((h) =>
+          '<button class="library-item solar-house-item" data-h="' + h.id + '">' +
+            '<span class="li-name">' + h.name + '</span>' +
+            '<span class="li-group">' + h.theme + '</span>' +
+          '</button>'
+        ).join("") +
+      '</div>';
+    bindPracticeSubnav();
+    $content.querySelectorAll(".solar-house-item").forEach((el) => {
+      el.addEventListener("click", () => {
+        state.solarHouse = Number(el.dataset.h);
+        state.solarCard = null;
+        renderSolarSubview();
+      });
+    });
+  }
+
+  function solarCardsForQuery(q) {
+    if (!q || !q.trim()) return [];
+    const n = norm(q);
+    return CARDS.filter((c) => norm(c.name).includes(n)).slice(0, 12);
+  }
+
+  function renderSolarCardPicker(house) {
+    const results = solarCardsForQuery(state.solarQuery);
+    $content.innerHTML =
+      renderPracticeSubnav() +
+      '<button class="btn ghost small" id="solarBackToHouses">← Другой дом</button>' +
+      '<div class="solar-house-header prose">' +
+        '<h2>' + house.name + '</h2>' +
+        '<p>' + house.theme + '</p>' +
+      '</div>' +
+      '<div class="cp-actions">' +
+        '<button class="btn primary" id="solarRandomCardBtn">🎲 Случайная карта</button>' +
+      '</div>' +
+      '<input type="text" class="search-input" id="solarCardQuery" placeholder="Или найди карту по имени…" value="' + (state.solarQuery || "") + '">' +
+      (results.length
+        ? '<div class="library-grid">' +
+            results.map((c) => '<button class="library-item solar-pick-item" data-name="' + c.name + '"><span class="li-name">' + c.name + '</span><span class="li-group">' + c.group + '</span></button>').join("") +
+          '</div>'
+        : "");
+
+    bindPracticeSubnav();
+    document.getElementById("solarBackToHouses").addEventListener("click", () => {
+      state.solarHouse = null;
+      renderSolarSubview();
+    });
+    document.getElementById("solarRandomCardBtn").addEventListener("click", () => {
+      state.solarCard = CARDS[Math.floor(Math.random() * CARDS.length)].name;
+      renderSolarSubview();
+    });
+    const input = document.getElementById("solarCardQuery");
+    input.addEventListener("input", () => {
+      state.solarQuery = input.value;
+      renderSolarCardPicker(house);
+    });
+    $content.querySelectorAll(".solar-pick-item").forEach((el) => {
+      el.addEventListener("click", () => {
+        state.solarCard = el.dataset.name;
+        renderSolarSubview();
+      });
+    });
+  }
+
+  function renderSolarWorkspace(house, card) {
+    const summary = solarCardQuickSummary(card);
+    const noteKey = "solar:" + house.id + ":" + card.name;
+
+    $content.innerHTML =
+      renderPracticeSubnav() +
+      '<div class="solar-actions-top">' +
+        '<button class="btn ghost small" id="solarBackToHouses">← Другой дом</button>' +
+        '<button class="btn ghost small" id="solarBackToCards">🎲 Другая карта</button>' +
+      '</div>' +
+      '<div class="card-page">' +
+        '<div class="cp-tag">Соляр · ' + house.name + '</div>' +
+        '<h1 class="cp-name">' + card.name + ' в ' + house.name.replace(/^Дом \d+\.\s*/, "") + '</h1>' +
+        '<div class="cp-quick">' +
+          '<div class="cp-quick-label">Тема дома</div>' +
+          '<p>' + escapeHtml(house.theme) + '</p>' +
+        '</div>' +
+        '<div class="cp-quick">' +
+          '<div class="cp-quick-label">Карта коротко</div>' +
+          '<p>' + escapeHtml(summary) + '</p>' +
+        '</div>' +
+        '<div class="daily-reflect">' +
+          '<div class="dr-title">Разбери карту в доме по методу автора</div>' +
+          '<ol>' + SOLAR_QUESTIONS.map((q) => "<li>" + q + "</li>").join("") + '</ol>' +
+        '</div>' +
+        '<div class="cp-note"></div>' +
+        '<div class="cp-actions">' +
+          '<button class="btn small" id="solarOpenLesson">Открыть урок про этот дом</button>' +
+          '<button class="btn small" id="solarOpenCard">Учебная страница карты</button>' +
+        '</div>' +
+      '</div>';
+
+    bindPracticeSubnav();
+    $content.querySelector(".cp-note").innerHTML = noteBoxHtml(noteKey, "Моя трактовка");
+    bindNoteBoxes($content);
+
+    document.getElementById("solarBackToHouses").addEventListener("click", () => {
+      state.solarHouse = null;
+      state.solarCard = null;
+      renderSolarSubview();
+    });
+    document.getElementById("solarBackToCards").addEventListener("click", () => {
+      state.solarCard = CARDS[Math.floor(Math.random() * CARDS.length)].name;
+      renderSolarSubview();
+    });
+    document.getElementById("solarOpenLesson").addEventListener("click", () => {
+      openLesson(house.lesson, house.headingTerm);
+    });
+    document.getElementById("solarOpenCard").addEventListener("click", () => openCard(card.name));
+  }
+
+  function renderSolarSubview() {
+    if (!state.solarHouse) { renderSolarHousePicker(); return; }
+    const house = houseById(state.solarHouse);
+    if (!house) { state.solarHouse = null; renderSolarHousePicker(); return; }
+    if (!state.solarCard) { renderSolarCardPicker(house); return; }
+    const card = CARDS.find((c) => c.name === state.solarCard);
+    if (!card) { state.solarCard = null; renderSolarCardPicker(house); return; }
+    renderSolarWorkspace(house, card);
   }
