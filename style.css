@@ -23,6 +23,39 @@ body{
   min-height:100vh;
 }
 
+/* Гейт по паролю: пока не разблокировано — прячем весь интерфейс */
+body.gate-locked .topbar,
+body.gate-locked .layout,
+body.gate-locked .bottom-nav{ display:none !important; }
+
+.gate-overlay{
+  position:fixed; inset:0; z-index:100;
+  display:flex; align-items:center; justify-content:center;
+  background: radial-gradient(ellipse at top, #241d38 0%, var(--bg) 60%);
+  padding: 20px;
+}
+body:not(.gate-locked) .gate-overlay{ display:none; }
+.gate-box{
+  max-width: 340px; width:100%; text-align:center;
+  background: var(--panel); border:1px solid var(--border); border-radius: var(--radius);
+  padding: 32px 28px;
+}
+.gate-emoji{ font-size:2rem; margin-bottom:8px; }
+.gate-title{ font-size:1.2rem; color: var(--accent); margin: 0 0 6px; }
+.gate-sub{ font-family: system-ui, sans-serif; font-size:.85rem; color: var(--text-dim); margin: 0 0 18px; }
+.gate-input{
+  width:100%; padding: 10px 12px; border-radius: 10px; margin-bottom: 12px;
+  border:1px solid var(--border); background: var(--bg-soft); color: var(--text);
+  font-family: system-ui, sans-serif; font-size:1rem; text-align:center;
+}
+.gate-error{ color: var(--review); font-family: system-ui, sans-serif; font-size:.82rem; min-height:1.2em; margin-bottom:10px; }
+.gate-shake{ animation: gateShake .35s; }
+@keyframes gateShake{
+  0%,100%{ transform: translateX(0); }
+  25%{ transform: translateX(-8px); }
+  75%{ transform: translateX(8px); }
+}
+
 .topbar{
   position: sticky; top:0; z-index:20;
   display:flex; align-items:center; gap:12px;

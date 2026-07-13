@@ -4,9 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>78 ключей — учебный курс Таро</title>
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
-<body>
+<body class="gate-locked">
+
+<div class="gate-overlay" id="gateOverlay">
+  <div class="gate-box">
+    <div class="gate-emoji">🔮</div>
+    <h1 class="gate-title">78 ключей</h1>
+    <p class="gate-sub">Введите пароль, чтобы открыть учебный кабинет</p>
+    <form id="gateForm" autocomplete="off">
+      <input type="password" id="gateInput" class="gate-input" placeholder="Пароль" autofocus>
+      <div class="gate-error" id="gateError"></div>
+      <button type="submit" class="btn primary" style="width:100%;">Войти</button>
+    </form>
+  </div>
+</div>
 
 <header class="topbar">
   <button id="menuToggle" class="icon-btn" aria-label="Меню">☰</button>
@@ -40,6 +53,48 @@
   <button class="nav-tab" data-view="search"><span class="bn-icon">🔍</span><span class="bn-label">Поиск</span></button>
 </nav>
 
+<script>
+(function () {
+  "use strict";
+  var GATE_KEY = "tarot78_gate_ok_v1";
+  var GATE_HASH = "ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f"; // sha256("12345678")
+
+  function sha256Hex(text) {
+    var enc = new TextEncoder().encode(text);
+    return crypto.subtle.digest("SHA-256", enc).then(function (buf) {
+      return Array.from(new Uint8Array(buf)).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+    });
+  }
+
+  if (localStorage.getItem(GATE_KEY) === "1") {
+    document.body.classList.remove("gate-locked");
+    return;
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    var form = document.getElementById("gateForm");
+    var input = document.getElementById("gateInput");
+    var errorEl = document.getElementById("gateError");
+    var box = document.querySelector(".gate-box");
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      sha256Hex(input.value).then(function (hex) {
+        if (hex === GATE_HASH) {
+          localStorage.setItem(GATE_KEY, "1");
+          document.body.classList.remove("gate-locked");
+        } else {
+          errorEl.textContent = "Неверный пароль";
+          box.classList.remove("gate-shake");
+          void box.offsetWidth;
+          box.classList.add("gate-shake");
+          input.value = "";
+          input.focus();
+        }
+      });
+    });
+  });
+})();
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="app-data.js?v=2"></script>
 <script src="app-core.js?v=2"></script>
