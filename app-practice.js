@@ -378,12 +378,19 @@
   // нет, поэтому ресурсную часть трактовки берём отсюда, а не ищем несуществующий подзаголовок.
   function getIntroExcerpt(sectionMd, limit) {
     if (!sectionMd) return null;
+    // Останавливаемся только на "тематических" заголовках (тень/ресурс/отношения/деньги/тело/практикум).
+    // Промежуточные подзаголовки вроде "Образ и смысл" или "Ключевые слова" пропускаем, но их текст
+    // всё равно включаем во вступление — иначе для многих карт вступление получается пустым.
+    const stopStems = (typeof TAG_STEMS !== "undefined" ? Object.values(TAG_STEMS) : ["тень", "ресурс", "отношени", "деньг", "тел", "практик"]);
     const lines = sectionMd.split("\n");
     let start = 0;
     if (/^#{1,4}\s+/.test(lines[0] || "")) start = 1;
     let end = lines.length;
     for (let j = start; j < lines.length; j++) {
-      if (/^#{1,4}\s+/.test(lines[j])) { end = j; break; }
+      const m = /^#{1,4}\s+(.*)$/.exec(lines[j]);
+      if (!m) continue;
+      const hn = norm(m[1]);
+      if (stopStems.some((s) => hn.includes(norm(s)))) { end = j; break; }
     }
     const body = lines.slice(start, end).join("\n").trim();
     if (!body) return null;
