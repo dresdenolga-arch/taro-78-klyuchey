@@ -324,6 +324,7 @@ body:not(.gate-locked) .gate-overlay{ display:none; }
 .solar-house-header{ max-width: var(--maxw); margin: 14px 0; }
 .solar-house-header h2{ color: var(--accent); margin: 0 0 6px; font-size:1.3rem; }
 .solar-actions-top{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+.spreads-query{ max-width: var(--maxw); min-height:64px; }
 
 @media (max-width: 880px){
   .icon-btn{ display:inline-block; }
