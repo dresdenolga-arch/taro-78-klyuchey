@@ -377,8 +377,22 @@
     return CARDS.filter((c) => norm(c.name).includes(n)).slice(0, 12);
   }
 
-  function renderSolarCardPicker(house) {
+  function renderSolarCardResults() {
+    const box = document.getElementById("solarPickResults");
+    if (!box) return;
     const results = solarCardsForQuery(state.solarQuery);
+    box.innerHTML = results.length
+      ? results.map((c) => '<button class="library-item solar-pick-item" data-name="' + c.name + '"><span class="li-name">' + c.name + '</span><span class="li-group">' + c.group + '</span></button>').join("")
+      : (state.solarQuery && state.solarQuery.trim() ? '<p class="search-empty">Ничего не найдено.</p>' : "");
+    box.querySelectorAll(".solar-pick-item").forEach((el) => {
+      el.addEventListener("click", () => {
+        state.solarCard = el.dataset.name;
+        renderSolarSubview();
+      });
+    });
+  }
+
+  function renderSolarCardPicker(house) {
     $content.innerHTML =
       renderPracticeSubnav() +
       '<button class="btn ghost small" id="solarBackToHouses">← Другой дом</button>' +
@@ -390,11 +404,7 @@
         '<button class="btn primary" id="solarRandomCardBtn">🎲 Случайная карта</button>' +
       '</div>' +
       '<input type="text" class="search-input" id="solarCardQuery" placeholder="Или найди карту по имени…" value="' + (state.solarQuery || "") + '">' +
-      (results.length
-        ? '<div class="library-grid">' +
-            results.map((c) => '<button class="library-item solar-pick-item" data-name="' + c.name + '"><span class="li-name">' + c.name + '</span><span class="li-group">' + c.group + '</span></button>').join("") +
-          '</div>'
-        : "");
+      '<div class="library-grid" id="solarPickResults"></div>';
 
     bindPracticeSubnav();
     document.getElementById("solarBackToHouses").addEventListener("click", () => {
@@ -408,14 +418,9 @@
     const input = document.getElementById("solarCardQuery");
     input.addEventListener("input", () => {
       state.solarQuery = input.value;
-      renderSolarCardPicker(house);
+      renderSolarCardResults();
     });
-    $content.querySelectorAll(".solar-pick-item").forEach((el) => {
-      el.addEventListener("click", () => {
-        state.solarCard = el.dataset.name;
-        renderSolarSubview();
-      });
-    });
+    renderSolarCardResults();
   }
 
   function renderSolarWorkspace(house, card) {
@@ -570,18 +575,31 @@
     });
   }
 
+  function renderSpreadsCardResults(positionId) {
+    const box = document.getElementById("spreadsPickResults");
+    if (!box) return;
+    const results = solarCardsForQuery(state.spreadsPickQuery);
+    box.innerHTML = results.length
+      ? results.map((c) => '<button class="library-item spreads-card-item" data-name="' + c.name + '"><span class="li-name">' + c.name + '</span><span class="li-group">' + c.group + '</span></button>').join("")
+      : (state.spreadsPickQuery && state.spreadsPickQuery.trim() ? '<p class="search-empty">Ничего не найдено.</p>' : "");
+    box.querySelectorAll(".spreads-card-item").forEach((el) => {
+      el.addEventListener("click", () => {
+        state.spreadsCards[positionId] = el.dataset.name;
+        state.spreadsPickPosition = null;
+        renderSpreadsSubview();
+      });
+    });
+  }
+
   function renderSpreadsCardPicker(spread, positionId) {
     const position = spread.positions.find((p) => p.id === positionId);
-    const results = solarCardsForQuery(state.spreadsPickQuery);
     $content.innerHTML =
       renderPracticeSubnav() +
       '<button class="btn ghost small" id="spreadsPickBack">← Назад к позициям</button>' +
       '<div class="solar-house-header prose"><h2>' + position.label + '</h2><p>' + escapeHtml(position.hint) + '</p></div>' +
       '<div class="cp-actions"><button class="btn primary" id="spreadsRandomCardBtn">🎲 Случайная карта</button></div>' +
       '<input type="text" class="search-input" id="spreadsPickInput" placeholder="Или введи карту, которая выпала у тебя…" value="' + (state.spreadsPickQuery || "") + '">' +
-      (results.length
-        ? '<div class="library-grid">' + results.map((c) => '<button class="library-item spreads-card-item" data-name="' + c.name + '"><span class="li-name">' + c.name + '</span><span class="li-group">' + c.group + '</span></button>').join("") + '</div>'
-        : "");
+      '<div class="library-grid" id="spreadsPickResults"></div>';
 
     bindPracticeSubnav();
     document.getElementById("spreadsPickBack").addEventListener("click", () => {
@@ -596,15 +614,9 @@
     const input = document.getElementById("spreadsPickInput");
     input.addEventListener("input", () => {
       state.spreadsPickQuery = input.value;
-      renderSpreadsCardPicker(spread, positionId);
+      renderSpreadsCardResults(positionId);
     });
-    $content.querySelectorAll(".spreads-card-item").forEach((el) => {
-      el.addEventListener("click", () => {
-        state.spreadsCards[positionId] = el.dataset.name;
-        state.spreadsPickPosition = null;
-        renderSpreadsSubview();
-      });
-    });
+    renderSpreadsCardResults(positionId);
   }
 
   function renderSpreadsResult(spread) {

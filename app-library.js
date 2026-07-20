@@ -59,33 +59,38 @@
     return list;
   }
 
+  function renderLibraryGridOnly() {
+    const box = document.getElementById("libraryGrid");
+    if (!box) return;
+    const list = libraryFilteredCards();
+    const known = progress.cards;
+    box.innerHTML = list.map((c) => {
+      const mark = known[c.name] === "know" ? " · выучено" : "";
+      return '<button class="library-item" data-name="' + c.name + '"><span class="li-name">' + c.name + '</span><span class="li-group">' + c.group + mark + '</span></button>';
+    }).join("");
+    box.querySelectorAll(".library-item").forEach((el) => {
+      el.addEventListener("click", () => openCard(el.dataset.name));
+    });
+  }
+
   function renderLibraryList() {
     const chips = ["Все"].concat(GROUPS).map(
       (g) => '<button class="chip lib-chip ' + (g === state.libraryFilter ? "active" : "") + '" data-g="' + g + '">' + g + '</button>'
     ).join("");
-    const list = libraryFilteredCards();
-    const known = progress.cards;
 
     $content.innerHTML =
       '<div class="library-wrap">' +
         '<input type="text" class="search-input" id="libraryQuery" placeholder="Найти карту по имени…" value="' + (state.libraryQuery || "") + '">' +
         '<div class="deck-picker">' + chips + '</div>' +
-        '<div class="library-grid">' +
-          list.map((c) => {
-            const mark = known[c.name] === "know" ? " · выучено" : "";
-            return '<button class="library-item" data-name="' + c.name + '"><span class="li-name">' + c.name + '</span><span class="li-group">' + c.group + mark + '</span></button>';
-          }).join("") +
-        '</div>' +
+        '<div class="library-grid" id="libraryGrid"></div>' +
       '</div>';
 
     $content.querySelectorAll(".lib-chip").forEach((c) => {
       c.addEventListener("click", () => { state.libraryFilter = c.dataset.g; renderLibraryList(); });
     });
     const input = document.getElementById("libraryQuery");
-    input.addEventListener("input", () => { state.libraryQuery = input.value; renderLibraryList(); });
-    $content.querySelectorAll(".library-item").forEach((el) => {
-      el.addEventListener("click", () => openCard(el.dataset.name));
-    });
+    input.addEventListener("input", () => { state.libraryQuery = input.value; renderLibraryGridOnly(); });
+    renderLibraryGridOnly();
   }
 
   function renderCardPage(card) {
