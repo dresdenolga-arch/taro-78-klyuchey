@@ -349,11 +349,52 @@
     return extractPreview(section, 320) || "Раздел по этой карте пока не найден в тексте урока.";
   }
 
+  // Чистит кусок markdown от заголовков и разметки, но НЕ обрезает длину —
+  // обрезкой занимается trimAtSentence ниже (нужно для больших цитат из конспекта).
+  function cleanMdText(mdSection) {
+    if (!mdSection) return "";
+    const lines = mdSection.split("\n").filter((l) => !/^#{1,4}\s/.test(l.trim()));
+    return lines.join(" ").replace(/[#*_`>]/g, "").replace(/\s+/g, " ").trim();
+  }
+
+  // Обрезает текст по границе предложения (а не посреди слова/цитаты), чтобы цитаты
+  // из конспекта в трактовке Соляра читались законченно, а не обрывались на "…на".
+  function trimAtSentence(text, maxLen) {
+    if (!text) return "";
+    if (text.length <= maxLen) return text;
+    const slice = text.slice(0, maxLen);
+    let cut = -1;
+    [". ", "! ", "? ", ".»", "!»", "?»"].forEach((sep) => {
+      const idx = slice.lastIndexOf(sep);
+      if (idx > cut) cut = idx;
+    });
+    if (cut > maxLen * 0.35) return slice.slice(0, cut + 1).trim();
+    const lastSpace = slice.lastIndexOf(" ");
+    return (lastSpace > 0 ? slice.slice(0, lastSpace) : slice).trim() + "…";
+  }
+
+  // Вступительный абзац карты (всё, что до первого подзаголовка вроде "## Тень") — в конспектах
+  // именно там обычно даётся суть карты и её ресурс. Отдельного заголовка "Ресурс" в текстах почти
+  // нет, поэтому ресурсную часть трактовки берём отсюда, а не ищем несуществующий подзаголовок.
+  function getIntroExcerpt(sectionMd, limit) {
+    if (!sectionMd) return null;
+    const lines = sectionMd.split("\n");
+    let start = 0;
+    if (/^#{1,4}\s+/.test(lines[0] || "")) start = 1;
+    let end = lines.length;
+    for (let j = start; j < lines.length; j++) {
+      if (/^#{1,4}\s+/.test(lines[j])) { end = j; break; }
+    }
+    const body = lines.slice(start, end).join("\n").trim();
+    if (!body) return null;
+    return { heading: "Суть карты и ресурс", text: trimAtSentence(cleanMdText(body), limit || 650) };
+  }
+
   // Достаёт из полного конспекта карты подраздел, заголовок которого совпадает с одним
   // из "стемов" (тень/ресурс/отношения/деньги/тело/практикум — см. TAG_STEMS в app-library.js).
   // Нужно, чтобы трактовка карты в доме Соляра опиралась на реальный текст конспекта,
   // а не только на общее "коротко" описание карты.
-  function extractTaggedExcerpt(sectionMd, stems) {
+  function extractTaggedExcerpt(sectionMd, stems, limit) {
     if (!sectionMd || !stems || !stems.length) return null;
     const lines = sectionMd.split("\n");
     for (let s = 0; s < stems.length; s++) {
@@ -368,26 +409,40 @@
           if (m2 && m2[1].length <= level) { end = j; break; }
         }
         const body = lines.slice(i + 1, end).join("\n").trim();
-        if (body) return { heading: m[2].trim(), text: extractPreview(body, 300) };
+        if (body) return { heading: m[2].trim(), text: trimAtSentence(cleanMdText(body), limit || 600) };
       }
     }
     return null;
   }
 
   // Собирает трактовку "карта в доме" по методу автора: тема дома + реальные тегированные
-  // куски конспекта карты (что нашлось по focusTags этого дома) + сверка с домом-осью
+  // куски конспекта карты (ресурс/тень всегда, плюс то, что специфично для темы дома —
+  // деньги/отношения/тело/практикум) + практический вывод на год + сверка с домом-осью
   // (компенсаторика: если карта явно перекошена в один дом, часто это компенсация
   // недостатка в доме-оси — идея из Урока 13).
   function buildSolarReading(house, card) {
     const text = state.lessonText.get(card.lesson) || "";
     const section = findCardSection(text, card);
     const axisHouse = houseById(house.axis);
-    const stems = (house.focusTags || []).map((t) => (typeof TAG_STEMS !== "undefined" && TAG_STEMS[t]) || t);
-    const excerpts = [];
-    stems.forEach((stem) => {
-      const ex = extractTaggedExcerpt(section, [stem]);
-      if (ex && !excerpts.some((e) => e.heading === ex.heading)) excerpts.push(ex);
+
+    // 1) Вступление/ресурс карты — всегда, из вступительного абзаца конспекта.
+    const intro = getIntroExcerpt(section, 650);
+    // 2) То, что специфично для темы этого дома (деньги/отношения/тело/практикум) — если есть такой раздел в конспекте.
+    const focusStems = (house.focusTags || [])
+      .filter((t) => t !== "ресурс")
+      .map((t) => (typeof TAG_STEMS !== "undefined" && TAG_STEMS[t]) || t);
+    const focusExcerpts = [];
+    focusStems.forEach((stem) => {
+      const ex = extractTaggedExcerpt(section, [stem], 650);
+      if (ex && !focusExcerpts.some((e) => e.heading === ex.heading)) focusExcerpts.push(ex);
     });
+    // 3) Тень — всегда, это ядро метода (см. Урок 13: сначала ресурс/тень карты, потом дом).
+    const shadow = extractTaggedExcerpt(section, ["тень"], 650);
+
+    const excerpts = [];
+    if (intro) excerpts.push(intro);
+    focusExcerpts.forEach((ex) => { if (!excerpts.some((e) => e.heading === ex.heading)) excerpts.push(ex); });
+    if (shadow && !excerpts.some((e) => e.heading === shadow.heading)) excerpts.push(shadow);
 
     const parts = [];
     parts.push(
@@ -396,11 +451,16 @@
     );
     if (excerpts.length) {
       excerpts.forEach((ex) => {
-        parts.push('<p><em>По конспекту (' + escapeHtml(ex.heading) + '):</em> ' + escapeHtml(ex.text) + '</p>');
+        parts.push('<p><em>' + escapeHtml(ex.heading) + ':</em> ' + escapeHtml(ex.text) + '</p>');
       });
     } else {
       parts.push('<p>' + escapeHtml(solarCardQuickSummary(card)) + '</p>');
     }
+    parts.push(
+      '<p><em>Практический вывод на год:</em> тема дома — «' + escapeHtml(house.theme) + '». ' +
+      'Опирайся на ресурс карты (выше) как на рабочий инструмент именно в этой сфере жизни весь год, а тень карты держи как сигнал — в какую крайность легко скатиться здесь же. ' +
+      'Переведи конкретно: что из ресурса карты ты будешь делать в этой теме, и что из её тени будешь отслеживать, чтобы вовремя остановиться.</p>'
+    );
     if (axisHouse) {
       parts.push(
         '<p><em>Сверка с осью:</em> противоположный дом здесь — «' + escapeHtml(axisHouse.name.replace(/^Дом \d+\.\s*/, "")) + '» (' +
