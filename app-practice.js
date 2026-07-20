@@ -349,6 +349,67 @@
     return extractPreview(section, 320) || "Раздел по этой карте пока не найден в тексте урока.";
   }
 
+  // Достаёт из полного конспекта карты подраздел, заголовок которого совпадает с одним
+  // из "стемов" (тень/ресурс/отношения/деньги/тело/практикум — см. TAG_STEMS в app-library.js).
+  // Нужно, чтобы трактовка карты в доме Соляра опиралась на реальный текст конспекта,
+  // а не только на общее "коротко" описание карты.
+  function extractTaggedExcerpt(sectionMd, stems) {
+    if (!sectionMd || !stems || !stems.length) return null;
+    const lines = sectionMd.split("\n");
+    for (let s = 0; s < stems.length; s++) {
+      const ns = norm(stems[s]);
+      for (let i = 0; i < lines.length; i++) {
+        const m = /^(#{1,4})\s+(.*)$/.exec(lines[i]);
+        if (!m || !norm(m[2]).includes(ns)) continue;
+        const level = m[1].length;
+        let end = lines.length;
+        for (let j = i + 1; j < lines.length; j++) {
+          const m2 = /^(#{1,4})\s+/.exec(lines[j]);
+          if (m2 && m2[1].length <= level) { end = j; break; }
+        }
+        const body = lines.slice(i + 1, end).join("\n").trim();
+        if (body) return { heading: m[2].trim(), text: extractPreview(body, 300) };
+      }
+    }
+    return null;
+  }
+
+  // Собирает трактовку "карта в доме" по методу автора: тема дома + реальные тегированные
+  // куски конспекта карты (что нашлось по focusTags этого дома) + сверка с домом-осью
+  // (компенсаторика: если карта явно перекошена в один дом, часто это компенсация
+  // недостатка в доме-оси — идея из Урока 13).
+  function buildSolarReading(house, card) {
+    const text = state.lessonText.get(card.lesson) || "";
+    const section = findCardSection(text, card);
+    const axisHouse = houseById(house.axis);
+    const stems = (house.focusTags || []).map((t) => (typeof TAG_STEMS !== "undefined" && TAG_STEMS[t]) || t);
+    const excerpts = [];
+    stems.forEach((stem) => {
+      const ex = extractTaggedExcerpt(section, [stem]);
+      if (ex && !excerpts.some((e) => e.heading === ex.heading)) excerpts.push(ex);
+    });
+
+    const parts = [];
+    parts.push(
+      '<p><strong>' + escapeHtml(card.name) + '</strong> в доме «' + escapeHtml(house.name.replace(/^Дом \d+\.\s*/, "")) + '»: ' +
+      escapeHtml(house.theme) + '</p>'
+    );
+    if (excerpts.length) {
+      excerpts.forEach((ex) => {
+        parts.push('<p><em>По конспекту (' + escapeHtml(ex.heading) + '):</em> ' + escapeHtml(ex.text) + '</p>');
+      });
+    } else {
+      parts.push('<p>' + escapeHtml(solarCardQuickSummary(card)) + '</p>');
+    }
+    if (axisHouse) {
+      parts.push(
+        '<p><em>Сверка с осью:</em> противоположный дом здесь — «' + escapeHtml(axisHouse.name.replace(/^Дом \d+\.\s*/, "")) + '» (' +
+        escapeHtml(axisHouse.theme) + '). Если карта звучит слишком сильно только в одном из двух домов, часто это компенсация — того, чего не хватает в доме-оси.</p>'
+      );
+    }
+    return parts.join("");
+  }
+
   function renderSolarHousePicker() {
     $content.innerHTML =
       renderPracticeSubnav() +
@@ -425,6 +486,8 @@
 
   function renderSolarWorkspace(house, card) {
     const summary = solarCardQuickSummary(card);
+    const reading = buildSolarReading(house, card);
+    const questions = (house.questions && house.questions.length) ? house.questions : SOLAR_QUESTIONS;
     const noteKey = "solar:" + house.id + ":" + card.name;
 
     $content.innerHTML =
@@ -437,16 +500,16 @@
         '<div class="cp-tag">Соляр · ' + house.name + '</div>' +
         '<h1 class="cp-name">' + card.name + ' — Дом ' + house.id + '</h1>' +
         '<div class="cp-quick">' +
-          '<div class="cp-quick-label">Тема дома</div>' +
-          '<p>' + escapeHtml(house.theme) + '</p>' +
-        '</div>' +
-        '<div class="cp-quick">' +
           '<div class="cp-quick-label">Карта коротко</div>' +
           '<p>' + escapeHtml(summary) + '</p>' +
         '</div>' +
+        '<div class="cp-quick solar-reading">' +
+          '<div class="cp-quick-label">Трактовка в этом доме</div>' +
+          reading +
+        '</div>' +
         '<div class="daily-reflect">' +
-          '<div class="dr-title">Разбери карту в доме по методу автора</div>' +
-          '<ol>' + SOLAR_QUESTIONS.map((q) => "<li>" + q + "</li>").join("") + '</ol>' +
+          '<div class="dr-title">Вопросы для этого дома</div>' +
+          '<ol>' + questions.map((q) => "<li>" + q + "</li>").join("") + '</ol>' +
         '</div>' +
         '<div class="cp-note"></div>' +
         '<div class="cp-actions">' +
